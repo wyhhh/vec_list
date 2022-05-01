@@ -372,13 +372,13 @@ impl<T> VecList<T> {
         }
     }
 
-	pub fn clear(&mut self) {
-		self.list.clear();
-		self.len = 0;
-		self.head = None;
-		self.tail = None;
-		self.deleted_tail = None;
-	}
+    pub fn clear(&mut self) {
+        self.list.clear();
+        self.len = 0;
+        self.head = None;
+        self.tail = None;
+        self.deleted_tail = None;
+    }
 
     // SAFETY: Must in range
     unsafe fn get_slot_mut(&mut self, idx: usize) -> &mut Slot<T> {
