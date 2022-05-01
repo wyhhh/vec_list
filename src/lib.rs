@@ -358,7 +358,8 @@ impl<T> VecList<T> {
         IntoIter { list: self }
     }
 
-	/// SAFETY: Must in range && Must not deleted
+	/// # Safety
+	/// Must in range && Must not deleted
     pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
 		debug_assert!(self.get_slot(idx).has_value());
 
@@ -368,7 +369,8 @@ impl<T> VecList<T> {
         }
     }
 
-	/// SAFETY: Must in range && Must not deleted
+	/// # Safety
+	/// Must in range && Must not deleted
     pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {
 		debug_assert!(self.get_slot(idx).has_value());
 
@@ -378,12 +380,13 @@ impl<T> VecList<T> {
         }
     }
 
-	pub fn get(&mut self, idx: usize) -> Option<&T> {
+	pub fn get(&self, idx: usize) -> Option<&T> {
         match self.list.get(idx) {
             Some(Slot::Value { val, .. }) => Some(val),
             _ => None,
         }
     }
+	
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
         match self.list.get_mut(idx) {
             Some(Slot::Value { val, .. }) => Some(val),
