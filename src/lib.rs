@@ -1,6 +1,7 @@
 #![allow(clippy::collapsible_else_if)]
 use core::fmt;
 use std::hint::unreachable_unchecked;
+use std::ops;
 use std::ptr;
 
 /// Double Linked List Backed by Vec
@@ -60,7 +61,7 @@ impl<T> VecList<T> {
     pub fn push_back(&mut self, val: T) -> usize {
         let ret = if let Some(deleted_idx) = self.deleted_tail {
             let old_tail = self.tail;
-            let deleted_slot = unsafe { self.get_mut(deleted_idx) };
+            let deleted_slot = unsafe { self.get_slot_mut(deleted_idx) };
 
             debug_assert!(deleted_slot.is_deleted());
             let deleted_prev = match deleted_slot {
@@ -76,7 +77,7 @@ impl<T> VecList<T> {
 
             /* link old tail's next to new element */
             if let Some(old_tail) = self.tail {
-                let old_tail = unsafe { self.get_mut(old_tail) };
+                let old_tail = unsafe { self.get_slot_mut(old_tail) };
 
                 debug_assert!(old_tail.has_value());
 
@@ -107,7 +108,8 @@ impl<T> VecList<T> {
                 self.head = Some(0);
             } else {
                 debug_assert!(self.tail.is_some());
-                let old_tail = unsafe { self.get_mut(unsafe { self.tail.unwrap_unchecked() }) };
+                let old_tail =
+                    unsafe { self.get_slot_mut(unsafe { self.tail.unwrap_unchecked() }) };
 
                 debug_assert!(old_tail.has_value());
                 match old_tail {
@@ -128,7 +130,7 @@ impl<T> VecList<T> {
     pub fn push_front(&mut self, val: T) -> usize {
         let ret = if let Some(deleted_idx) = self.deleted_tail {
             let old_head = self.head;
-            let deleted_slot = unsafe { self.get_mut(deleted_idx) };
+            let deleted_slot = unsafe { self.get_slot_mut(deleted_idx) };
 
             debug_assert!(deleted_slot.is_deleted());
 
@@ -145,7 +147,7 @@ impl<T> VecList<T> {
 
             /* link old head's next to new element */
             if let Some(old_head) = self.head {
-                let old_tail = unsafe { self.get_mut(old_head) };
+                let old_tail = unsafe { self.get_slot_mut(old_head) };
 
                 debug_assert!(old_tail.has_value());
                 match old_tail {
@@ -175,7 +177,8 @@ impl<T> VecList<T> {
                 self.tail = Some(0);
             } else {
                 debug_assert!(self.head.is_some());
-                let old_head = unsafe { self.get_mut(unsafe { self.head.unwrap_unchecked() }) };
+                let old_head =
+                    unsafe { self.get_slot_mut(unsafe { self.head.unwrap_unchecked() }) };
                 debug_assert!(old_head.has_value());
 
                 match old_head {
@@ -205,8 +208,8 @@ impl<T> VecList<T> {
     /// O(1)
     pub fn front(&self) -> Option<&T> {
         unsafe {
-            debug_assert!(self.get(self.head?).has_value());
-            match self.get(self.head?) {
+            debug_assert!(self.get_slot(self.head?).has_value());
+            match self.get_slot(self.head?) {
                 Slot::Value { val, .. } => Some(val),
                 _ => unreachable_unchecked(),
             }
@@ -216,8 +219,8 @@ impl<T> VecList<T> {
     /// O(1)
     pub fn back(&self) -> Option<&T> {
         unsafe {
-            debug_assert!(self.get(self.tail?).has_value());
-            match self.get(self.tail?) {
+            debug_assert!(self.get_slot(self.tail?).has_value());
+            match self.get_slot(self.tail?) {
                 Slot::Value { val, .. } => Some(val),
                 _ => unreachable_unchecked(),
             }
@@ -227,8 +230,8 @@ impl<T> VecList<T> {
     /// O(1)
     pub fn front_mut(&mut self) -> Option<&mut T> {
         unsafe {
-            debug_assert!(self.get(self.head?).has_value());
-            match self.get_mut(self.head?) {
+            debug_assert!(self.get_slot(self.head?).has_value());
+            match self.get_slot_mut(self.head?) {
                 Slot::Value { val, .. } => Some(val),
                 _ => unreachable_unchecked(),
             }
@@ -238,8 +241,8 @@ impl<T> VecList<T> {
     /// O(1)
     pub fn back_mut(&mut self) -> Option<&mut T> {
         unsafe {
-            debug_assert!(self.get(self.tail?).has_value());
-            match self.get_mut(self.tail?) {
+            debug_assert!(self.get_slot(self.tail?).has_value());
+            match self.get_slot_mut(self.tail?) {
                 Slot::Value { val, .. } => Some(val),
                 _ => unreachable_unchecked(),
             }
@@ -251,7 +254,7 @@ impl<T> VecList<T> {
         assert!(idx < self.cap());
 
         let old_delete_head = self.deleted_tail;
-        let to_delete = unsafe { self.get_mut(idx) } as *mut Slot<T>;
+        let to_delete = unsafe { self.get_slot_mut(idx) } as *mut Slot<T>;
 
         /* connect links */
         let deleted_val = match unsafe { &mut *to_delete } {
@@ -271,7 +274,7 @@ impl<T> VecList<T> {
 
                 /* solve previous */
                 if let Some(prev) = to_delete_prev {
-                    let prev = unsafe { self.get_mut(prev) };
+                    let prev = unsafe { self.get_slot_mut(prev) };
 
                     debug_assert!(prev.has_value());
                     match prev {
@@ -284,7 +287,7 @@ impl<T> VecList<T> {
 
                 /* solve next */
                 if let Some(next) = to_delete_next {
-                    let next = unsafe { self.get_mut(next) };
+                    let next = unsafe { self.get_slot_mut(next) };
 
                     debug_assert!(next.has_value());
                     match next {
@@ -351,15 +354,33 @@ impl<T> VecList<T> {
         }
     }
 
+    pub fn into_iter(self) -> IntoIter<T> {
+        IntoIter { list: self }
+    }
+
+    pub fn get(&self, idx: usize) -> Option<&T> {
+        match self.list.get(idx) {
+            Some(Slot::Value { val, .. }) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
+        match self.list.get_mut(idx) {
+            Some(Slot::Value { val, .. }) => Some(val),
+            _ => None,
+        }
+    }
+
     // SAFETY: Must in range
-    unsafe fn get_mut(&mut self, idx: usize) -> &mut Slot<T> {
+    unsafe fn get_slot_mut(&mut self, idx: usize) -> &mut Slot<T> {
         debug_assert!(idx < self.cap());
 
         self.list.get_unchecked_mut(idx)
     }
 
     // SAFETY: Must in range
-    unsafe fn get(&self, idx: usize) -> &Slot<T> {
+    unsafe fn get_slot(&self, idx: usize) -> &Slot<T> {
         debug_assert!(idx < self.cap());
 
         self.list.get_unchecked(idx)
@@ -371,6 +392,15 @@ pub struct Iter<'a, T> {
     next: Option<usize>,
     prev: Option<usize>,
 }
+pub struct IterMut<'a, T> {
+    list: &'a mut VecList<T>,
+    next: Option<usize>,
+    prev: Option<usize>,
+}
+
+pub struct IntoIter<T> {
+    list: VecList<T>,
+}
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
@@ -378,7 +408,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.next?;
 
-        let slot = unsafe { self.list.get(next) };
+        let slot = unsafe { self.list.get_slot(next) };
 
         debug_assert!(slot.has_value());
 
@@ -396,7 +426,7 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let prev = self.prev?;
 
-        let slot = unsafe { self.list.get(prev) };
+        let slot = unsafe { self.list.get_slot(prev) };
 
         debug_assert!(slot.has_value());
 
@@ -409,11 +439,6 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
         }
     }
 }
-pub struct IterMut<'a, T> {
-    list: &'a mut VecList<T>,
-    next: Option<usize>,
-    prev: Option<usize>,
-}
 
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
@@ -421,7 +446,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.next?;
 
-        let slot = unsafe { &mut *(self.list.get_mut(next) as *mut Slot<T>) };
+        let slot = unsafe { &mut *(self.list.get_slot_mut(next) as *mut Slot<T>) };
 
         debug_assert!(slot.has_value());
 
@@ -439,7 +464,7 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let prev = self.prev?;
 
-        let slot = unsafe { &mut *(self.list.get_mut(prev) as *mut Slot<T>) };
+        let slot = unsafe { &mut *(self.list.get_slot_mut(prev) as *mut Slot<T>) };
 
         debug_assert!(slot.has_value());
 
@@ -450,6 +475,64 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
             }
             _ => unsafe { unreachable_unchecked() },
         }
+    }
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.list.pop_front()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.list.pop_back()
+    }
+}
+
+impl<T> ops::Index<usize> for VecList<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).expect("invalid key!")
+    }
+}
+
+impl<T> ops::IndexMut<usize> for VecList<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.get_mut(index).expect("invalid key!")
+    }
+}
+
+impl<T> IntoIterator for VecList<T> {
+    type Item = T;
+
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a VecList<T> {
+    type Item = &'a T;
+
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut VecList<T> {
+    type Item = &'a mut T;
+
+    type IntoIter = IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 
