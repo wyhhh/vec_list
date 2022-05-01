@@ -8,4 +8,4 @@ Enhanced Edition of slab crate.
 - front()/front_mut()/back()/back_mut()
 - pop_front()/pop_back()
 
-All operations above are O(1) worst time complexity, expect `pushs` are nearly O(1).
+All operations above are O(1) worst time complexity, expect `pushs` are average O(1).
