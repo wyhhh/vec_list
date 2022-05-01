@@ -9,7 +9,7 @@ pub struct VecList<T> {
     list: Vec<Slot<T>>,
     head: Option<usize>,
     tail: Option<usize>,
-    deleted_head: Option<usize>,
+    deleted_tail: Option<usize>,
     len: usize,
 }
 
@@ -42,7 +42,7 @@ impl<T> VecList<T> {
             len: 0,
             head: None,
             tail: None,
-            deleted_head: None,
+            deleted_tail: None,
         }
     }
 
@@ -52,13 +52,13 @@ impl<T> VecList<T> {
             len: 0,
             head: None,
             tail: None,
-            deleted_head: None,
+            deleted_tail: None,
         }
     }
 
     /// Average O(1)
     pub fn push_back(&mut self, val: T) -> usize {
-        let ret = if let Some(deleted_idx) = self.deleted_head {
+        let ret = if let Some(deleted_idx) = self.deleted_tail {
             let old_tail = self.tail;
             let deleted_slot = unsafe { self.get_mut(deleted_idx) };
 
@@ -86,7 +86,7 @@ impl<T> VecList<T> {
                 }
             }
 
-            self.deleted_head = deleted_prev;
+            self.deleted_tail = deleted_prev;
             self.tail = Some(deleted_idx);
 
             if self.is_empty() {
@@ -126,7 +126,7 @@ impl<T> VecList<T> {
 
     /// Average O(1)
     pub fn push_front(&mut self, val: T) -> usize {
-        let ret = if let Some(deleted_idx) = self.deleted_head {
+        let ret = if let Some(deleted_idx) = self.deleted_tail {
             let old_head = self.head;
             let deleted_slot = unsafe { self.get_mut(deleted_idx) };
 
@@ -154,7 +154,7 @@ impl<T> VecList<T> {
                 }
             }
 
-            self.deleted_head = deleted_prev;
+            self.deleted_tail = deleted_prev;
             self.head = Some(deleted_idx);
 
             if self.is_empty() {
@@ -250,7 +250,7 @@ impl<T> VecList<T> {
     pub fn delete(&mut self, idx: usize) -> Option<T> {
         assert!(idx < self.cap());
 
-        let old_delete_head = self.deleted_head;
+        let old_delete_head = self.deleted_tail;
         let to_delete = unsafe { self.get_mut(idx) } as *mut Slot<T>;
 
         /* connect links */
@@ -310,7 +310,7 @@ impl<T> VecList<T> {
             );
         }
 
-        self.deleted_head = Some(idx);
+        self.deleted_tail = Some(idx);
         self.len -= 1;
 
         Some(deleted_val)
