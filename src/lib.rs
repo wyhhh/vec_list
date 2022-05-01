@@ -392,6 +392,7 @@ pub struct Iter<'a, T> {
     next: Option<usize>,
     prev: Option<usize>,
 }
+
 pub struct IterMut<'a, T> {
     list: &'a mut VecList<T>,
     next: Option<usize>,
