@@ -9,3 +9,5 @@ Enhanced Edition of slab crate.
 - pop_front()/pop_back()
 
 All operations above are O(1) worst time complexity, except `pushs` are average O(1).
+
+You can also use some like as a `Map` which the key is always usize.
