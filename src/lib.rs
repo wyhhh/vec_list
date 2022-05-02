@@ -439,6 +439,32 @@ impl<T> VecList<T> {
         }
     }
 
+    pub fn next(&self, idx: usize) -> Option<usize> {
+        if idx < self.cap() {
+            return None;
+        }
+
+        let slot = unsafe { self.get_slot(idx) };
+
+        match slot {
+            Slot::Value { next, .. } => *next,
+            Slot::Deleted { .. } => None,
+        }
+    }
+
+    pub fn previous(&self, idx: usize) -> Option<usize> {
+        if idx < self.cap() {
+            return None;
+        }
+
+        let slot = unsafe { self.get_slot(idx) };
+
+        match slot {
+            Slot::Value { prev, .. } => *prev,
+            Slot::Deleted { .. } => None,
+        }
+    }
+
     pub fn clear(&mut self) {
         self.list.clear();
         self.len = 0;
