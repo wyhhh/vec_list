@@ -20,7 +20,7 @@ macro_rules! vec_list {
 }
 
 /// Double Linked List Backed by Vec
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct VecList<T> {
     list: Vec<Slot<T>>,
     head: Option<usize>,
@@ -29,7 +29,7 @@ pub struct VecList<T> {
     len: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Slot<T> {
     Value {
         val: T,
