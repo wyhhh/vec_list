@@ -4,6 +4,21 @@ use std::hint::unreachable_unchecked;
 use std::ops;
 use std::ptr;
 
+#[macro_export]
+macro_rules! vec_list {
+	() => (
+		$crate::VecList::new()
+	);
+	($elem:expr; $n:expr) => (
+		$crate::VecList::repeat($elem, $n)
+	);
+	($($x:expr),+ $(,)?) => ({
+		let mut vec_list = VecList::new();
+		$(vec_list.push_back($x);)+
+		vec_list
+	});
+}
+
 /// Double Linked List Backed by Vec
 #[derive(Debug, Default)]
 pub struct VecList<T> {
@@ -33,6 +48,16 @@ impl<T> Slot<T> {
 
     fn has_value(&self) -> bool {
         matches!(self, Self::Value { .. })
+    }
+}
+
+impl<T: Clone> VecList<T> {
+    pub fn repeat(val: T, n: usize) -> Self {
+        let mut vec_list = Self::with_capacity(n);
+        for _ in 0..n {
+            vec_list.push_back(val.clone());
+        }
+        vec_list
     }
 }
 
@@ -595,7 +620,7 @@ impl<T: fmt::Debug> fmt::Display for VecList<T> {
         }
 
         let mut sep = "";
-        for elt in self.iter() {
+        for (elt, _) in self.iter() {
             write!(f, "{}{:?}", sep, elt)?;
             sep = " -> ";
         }
@@ -603,46 +628,4 @@ impl<T: fmt::Debug> fmt::Display for VecList<T> {
 
         Ok(())
     }
-}
-
-#[test]
-fn test() {
-    let mut l = VecList::new();
-    let a = l.push_back(1);
-    let b = l.push_back(2);
-    let c = l.push_back(3);
-    let a = l.push_front(1);
-    let b = l.push_front(2);
-    let c = l.push_front(3);
-    // let x = l.pop_back();
-    // println!("{:?}",x);
-    // let x = l.pop_back();
-    // println!("{:?}",x);
-    // let x = l.pop_back();
-    // println!("{:?}",x);
-    // let x = l.pop_back();
-    // println!("{:?}",x);
-    // let x = l.pop_front();
-    // println!("{:?}",x);
-    // let x = l.pop_front();
-    // println!("{:?}",x);
-    // let x = l.pop_front();
-    // println!("{:?}",x);
-    // let x = l.pop_front();
-    // println!("{:?}",x);
-    l.delete(a);
-    l.delete(b);
-    let c = l.push_back(4);
-    let d = l.push_back(5);
-    let e = l.push_back(6);
-    l.delete(e);
-    l.delete(d);
-
-    for x in l.iter().rev() {
-        println!("{:?}", x);
-    }
-    println!("{:?}", l.front());
-    println!("{:?}", l.back());
-    println!("{:#?}", l);
-    println!("{}", l);
 }
