@@ -37,7 +37,7 @@ impl<T> Slot<T> {
 }
 
 impl<T> VecList<T> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             list: Vec::new(),
             len: 0,
