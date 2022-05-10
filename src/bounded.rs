@@ -2,7 +2,7 @@ use crate::Iter;
 use crate::VecList;
 
 /// A bounded list, when cap is full, it will `pop_back` and `push_front`
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct BoundedList<T> {
     list: VecList<T>,
     cap: usize,
@@ -27,6 +27,10 @@ impl<T> BoundedList<T> {
 
     pub fn len(&self) -> usize {
         self.list.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn iter(&self) -> Iter<T> {
