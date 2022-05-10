@@ -4,6 +4,8 @@ use std::hint::unreachable_unchecked;
 use std::ops;
 use std::ptr;
 
+mod bounded;
+
 #[macro_export]
 macro_rules! vec_list {
 	() => (
